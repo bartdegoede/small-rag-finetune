@@ -24,7 +24,7 @@ _YAML_FM = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 _TOML_FM = re.compile(r"\A\+\+\+\n(.*?)\n\+\+\+\n", re.DOTALL)
 _GO_ACTION = re.compile(r"\{\{.*?\}\}", re.DOTALL)
 _LINK_DEF = re.compile(r"^\[[^\]]+\]:\s*\S.*$", re.MULTILINE)
-_RFC_META = re.compile(r"^- [A-Za-z ]+:.*$", re.MULTILINE)
+_RFC_META = re.compile(r"^- [^:\n]{1,40}:")
 
 
 def go_blog(path: Path) -> Doc | None:
@@ -54,33 +54,49 @@ def rust_blog(path: Path) -> Doc | None:
     return Doc(slug, str(fm.get("title", "")).strip(), body)
 
 
+def _strip_rfc_header(raw: str) -> str:
+    """Drop the leading "- Feature Name: …" list (after an optional title heading)."""
+    lines = raw.splitlines()
+    i = 0
+    while i < len(lines) and (not lines[i].strip() or lines[i].startswith("#")):
+        i += 1
+    keep = lines[:i]
+    while i < len(lines) and (
+        not lines[i].strip() or _RFC_META.match(lines[i]) or lines[i].startswith("  ")
+    ):
+        i += 1
+    return "\n".join(keep + lines[i:])
+
+
 def rust_rfc(path: Path) -> Doc | None:
     """rust-lang/rfcs text/NNNN-name.md: a "- Key: value" header list, no title."""
     num, _, name = path.stem.partition("-")
     if not num.isdigit() or not name:
         return None
-    raw = path.read_text()
-    first = re.search(r"^#", raw, re.MULTILINE)
-    cut = first.start() if first else 0
-    body = _LINK_DEF.sub("", _RFC_META.sub("", raw[:cut]) + raw[cut:])
+    body = _LINK_DEF.sub("", _strip_rfc_header(path.read_text()))
     title = f"RFC {int(num)}: {name.replace('-', ' ').replace('_', ' ')}"
     return Doc(path.stem, title, body)
 
 
 _PEP_FILE = re.compile(r"^pep-(\d+)\.rst$")
 _UNDERLINE = re.compile(r"^([=\-~^`#*+'\"])\1{2,}\s*$")
+_TABLE_BORDER = re.compile(r"^[=\-]{2,}(\s+[=\-]{2,})+\s*$")
+_ROLE_TARGET = re.compile(r":[a-z]+(?::[a-z]+)?:`([^`<]+?)\s*<[^>]*>`")
 _RST_LINK = re.compile(r"`([^`<]+?)\s*<[^>]+>`__?")
 _PEP_ROLE = re.compile(r":pep:`(\d+)`")
+_FOOTNOTE = re.compile(r" ?\[[^\]\s]+\]_")
 _ROLE = re.compile(r":[a-z]+(?::[a-z]+)?:`([^`]*)`")
 _LITERAL = re.compile(r"``(.+?)``")
 _REF = re.compile(r"(?<!`)`([^`]+)`_")
 
 
 def _inline(s: str) -> str:
+    s = _ROLE_TARGET.sub(r"\1", s)
     s = _RST_LINK.sub(r"\1", s)
     s = _PEP_ROLE.sub(r"PEP \1", s)
     s = _ROLE.sub(r"\1", s)
     s = _LITERAL.sub(r"`\1`", s)
+    s = _FOOTNOTE.sub("", s)
     return _REF.sub(r"\1", s)
 
 
@@ -119,20 +135,23 @@ def rst_to_markdown(text: str) -> str:
         if title is not None:
             if style not in levels:
                 levels.append(style)
-            out += ["#" * min(levels.index(style) + 1, 6) + " " + _inline(title), ""]
+            out += ["#" * min(levels.index(style) + 1, 6) + " " + title, ""]
             i += step
             continue
-        if line.startswith(".. "):
+        if _TABLE_BORDER.match(line):
+            pass
+        elif line.startswith(".. "):
             skipping = True
         elif line.rstrip().endswith("::"):
             lead = line.rstrip()[:-2].rstrip()
             if lead:
-                out.append(_inline(lead + ":"))
+                out.append(lead + ":")
             skipping = True
         else:
-            out.append(_inline(line.strip() if line[:1].isspace() else line))
+            out.append(line.strip() if line[:1].isspace() else line)
         i += 1
-    return "\n".join(out)
+    # Inline markup last, on the whole text: roles and links can span lines.
+    return _inline("\n".join(out))
 
 
 def _pep_header(lines: list[str]) -> tuple[dict[str, str], list[str]]:

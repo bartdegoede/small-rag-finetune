@@ -21,3 +21,28 @@ def build_data(answerable: int, refusal: int, valid: int, seed: int, out: Path) 
     examples = build(answerable, refusal, seed)
     write_splits(examples, out, valid)
     click.echo(f"{len(examples)} examples -> {out}/ ({valid} valid)")
+
+
+@main.command()
+@click.option("--root", type=click.Path(path_type=Path), default=Path("data/sources"))
+def fetch_sources(root: Path) -> None:
+    """Check out every source at its pinned commit."""
+    from .sources import SOURCES, fetch
+
+    for src in SOURCES.values():
+        click.echo(f"{src.name}: {fetch(src, root)}")
+
+
+@main.command()
+@click.option(
+    "--sources", type=click.Path(path_type=Path), default=Path("data/sources")
+)
+@click.option("--out", type=click.Path(path_type=Path), default=Path("data/corpus"))
+def build_corpus(sources: Path, out: Path) -> None:
+    """Normalize every source into markdown posts the blog's chunker reads."""
+    from .corpus import write_corpus
+    from .sources import SOURCES
+
+    for src in SOURCES.values():
+        n = write_corpus(src, sources / src.name, out)
+        click.echo(f"{src.name}: {n} documents -> {out / src.name}")

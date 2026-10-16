@@ -141,3 +141,36 @@ def test_overlined_title():
 
 def test_non_pep_file_is_skipped(tmp_path):
     assert pep(write(tmp_path, "peps/conf.rst", "x")) is None
+
+
+def test_rust_rfc_metadata_after_a_title_line(tmp_path):
+    p = write(
+        tmp_path,
+        "text/2947-crates-io-token-scopes.md",
+        "## crates.io token scopes RFC\n\n- Feature Name: `scopes`\n"
+        "- Start Date: 2020-06-24\n- crates.io issue: [x](https://x)\n\n"
+        "# Summary\n\nTokens get scopes.\n\n- Note: kept.\n",
+    )
+    body = rust_rfc(p).body
+    assert "## crates.io token scopes RFC" in body
+    assert "Start Date" not in body and "crates.io issue" not in body
+    assert "Tokens get scopes." in body and "- Note: kept." in body
+
+
+def test_rst_simple_table_borders_and_footnotes_are_dropped():
+    md = rst_to_markdown(
+        "Text with a note [2]_ and a cite [#]_.\n\n"
+        "======  ========\nNumber  Constant\n======  ========\n1       MODE_ECB\n"
+        "======  ========\n"
+    )
+    assert "[2]_" not in md and "[#]_" not in md
+    assert "Text with a note and a cite." in md
+    assert "======" not in md
+    assert "1       MODE_ECB" in md
+
+
+def test_rst_roles_spanning_lines_and_with_targets():
+    md = rst_to_markdown(
+        "See the :pep:`style guidelines for the C code\nin CPython <7>` for more.\n"
+    )
+    assert md == "See the style guidelines for the C code\nin CPython for more."
