@@ -113,3 +113,21 @@ def loss_chart(log: Path, out: Path, name: str, epoch_iters: float) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(svg + "\n")
     click.echo(f"wrote {out}")
+
+
+@main.command()
+@click.option(
+    "--src", type=click.Path(exists=True, path_type=Path), default=Path("data/v1")
+)
+@click.option("--out", type=click.Path(path_type=Path), default=Path("data/v2"))
+def strip_hedges(src: Path, out: Path) -> None:
+    """Copy a dataset without partial-answer hedges ("the blog does not ...")."""
+    from .hedges import strip_split
+
+    summary = {
+        split: strip_split(src, out, split) for split in ("train", "valid", "test")
+    }
+    (out / "summary.json").write_text(
+        json.dumps({"source": str(src), **summary}, indent=2)
+    )
+    click.echo(json.dumps(summary, indent=2))
