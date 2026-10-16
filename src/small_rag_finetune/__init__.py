@@ -76,3 +76,16 @@ def generate(corpus: Path, out: Path, seed: int) -> None:
 
     summary = run_generate(corpus, out, list(SOURCES), QUOTAS, seed=seed)
     click.echo(json.dumps(summary, indent=2))
+
+
+@main.command()
+@click.argument("log", type=click.Path(exists=True, path_type=Path))
+@click.argument("run_dir", type=click.Path(exists=True, path_type=Path))
+def best_checkpoint(log: Path, run_dir: Path) -> None:
+    """Pick the lowest-validation-loss checkpoint into <run_dir>-best/."""
+    from .checkpoints import best_checkpoint as pick
+    from .checkpoints import val_losses
+
+    it, out = pick(log, run_dir)
+    click.echo(f"val losses: {val_losses(log.read_text())}")
+    click.echo(f"best: iteration {it} -> {out}")
