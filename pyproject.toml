@@ -1,7 +1,7 @@
 [project]
 name = "small-rag-finetune"
 version = "0.1.0"
-description = "Add your description here"
+description = "Fine-tune small LMs to answer from retrieved passages, or refuse, for in-browser RAG"
 readme = "README.md"
 authors = [
     { name = "Bart de Goede", email = "bdegoede@gmail.com" }
