@@ -35,3 +35,6 @@ dev = [
 
 [tool.ruff]
 extend-exclude = ["src/small_rag_finetune/vendor"]
+
+[tool.pytest.ini_options]
+pythonpath = ["tests"]
