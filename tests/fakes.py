@@ -48,8 +48,47 @@ def small_corpus(root: Path) -> None:
     write_post(root, "lifetimes", "Lifetimes", "Rust lifetimes track borrows. " * 12)
 
 
+def reply_for(params: dict) -> str:
+    return FakeClient.ANSWER if "system" in params else FakeClient.QUESTIONS
+
+
+class FakeBatches:
+    """client.messages.batches: every batch ends at once; ids in `fail` error once."""
+
+    def __init__(self, fail=()):
+        self.fail = set(fail)
+        self.batches: dict[str, list[dict]] = {}
+        self.created: list[int] = []
+
+    def create(self, requests):
+        bid = f"batch_{len(self.batches)}"
+        self.batches[bid] = list(requests)
+        self.created.append(len(requests))
+        return SimpleNamespace(id=bid)
+
+    def retrieve(self, bid):
+        return SimpleNamespace(id=bid, processing_status="ended")
+
+    def results(self, bid):
+        for r in self.batches[bid]:
+            cid = r["custom_id"]
+            if cid in self.fail:
+                self.fail.discard(cid)
+                result = SimpleNamespace(type="errored")
+                yield SimpleNamespace(custom_id=cid, result=result)
+                continue
+            msg = SimpleNamespace(
+                content=[SimpleNamespace(type="text", text=reply_for(r["params"]))],
+                usage=SimpleNamespace(input_tokens=1000, output_tokens=200),
+                model=r["params"]["model"],
+            )
+            result = SimpleNamespace(type="succeeded", message=msg)
+            yield SimpleNamespace(custom_id=cid, result=result)
+
+
 class FakeClient:
-    """client.messages.create(**params) with canned replies and fixed usage."""
+    """client.messages.create(**params) and client.messages.batches, with canned
+    replies and fixed usage."""
 
     QUESTIONS = (
         "Q1: What do go generics add?\nQ2: How are go generics written?\n"
@@ -60,12 +99,13 @@ class FakeClient:
     def __init__(self):
         self.messages = self
         self.calls = []
+        self.batches = FakeBatches()
         self._lock = threading.Lock()
 
     def create(self, **params):
         with self._lock:
             self.calls.append(params)
-        text = self.ANSWER if "system" in params else self.QUESTIONS
+        text = reply_for(params)
         return SimpleNamespace(
             content=[
                 SimpleNamespace(type="thinking", thinking=""),
