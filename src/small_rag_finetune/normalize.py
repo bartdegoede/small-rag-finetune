@@ -23,6 +23,7 @@ class Doc:
 _YAML_FM = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 _TOML_FM = re.compile(r"\A\+\+\+\n(.*?)\n\+\+\+\n", re.DOTALL)
 _GO_ACTION = re.compile(r"\{\{.*?\}\}", re.DOTALL)
+_HEADING_ATTR = re.compile(r"[ \t]*\{#[^}\n]*\}")
 _LINK_DEF = re.compile(r"^\[[^\]]+\]:\s*\S.*$", re.MULTILINE)
 _RFC_META = re.compile(r"^- [^:\n]{1,40}:")
 
@@ -34,7 +35,7 @@ def go_blog(path: Path) -> Doc | None:
     if not m:
         return None
     fm = yaml.safe_load(m.group(1)) or {}
-    body = _GO_ACTION.sub("", raw[m.end() :])
+    body = _HEADING_ATTR.sub("", _GO_ACTION.sub("", raw[m.end() :]))
     return Doc(path.stem, str(fm.get("title", "")).strip(), body)
 
 
@@ -50,7 +51,7 @@ def rust_blog(path: Path) -> Doc | None:
     slug = path.parent.name if path.name == "index.md" else path.stem
     if "inside-rust" in path.parts:
         slug = f"inside-rust-{slug}"
-    body = _LINK_DEF.sub("", raw[m.end() :])
+    body = _HEADING_ATTR.sub("", _LINK_DEF.sub("", raw[m.end() :]))
     return Doc(slug, str(fm.get("title", "")).strip(), body)
 
 

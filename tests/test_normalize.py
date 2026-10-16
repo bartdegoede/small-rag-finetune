@@ -174,3 +174,14 @@ def test_rst_roles_spanning_lines_and_with_targets():
         "See the :pep:`style guidelines for the C code\nin CPython <7>` for more.\n"
     )
     assert md == "See the style guidelines for the C code\nin CPython for more."
+
+
+def test_heading_anchor_attributes_are_stripped(tmp_path):
+    go = write(
+        tmp_path, "g.md", "---\ntitle: T\n---\n\n## Builds for Go {#go}\n\nText.\n"
+    )
+    rb = write(
+        tmp_path, "content/r.md", '+++\ntitle = "T"\n+++\n\n## Why {#why}\n\nText.\n'
+    )
+    assert "## Builds for Go\n" in go_blog(go).body
+    assert "## Why\n" in rust_blog(rb).body
