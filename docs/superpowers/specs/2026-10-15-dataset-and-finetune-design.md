@@ -57,9 +57,11 @@ anything else, so no document appears in two splits.
 
 Exactly what the browser does, per source (one source = one site):
 
-- chunk with `sss_eval.chunk_post` (the blog's chunker, same size and overlap),
-- embed with `minishlab/potion-retrieval-32M`,
-- retrieve the top 4 by cosine,
+- chunk with `sss_eval.chunk_post` (the blog's chunker) at the blog's settings:
+  600 characters, 120 overlap, title prefix (`scripts/build_search_index.py`),
+- embed with `minishlab/potion-base-8M` truncated to 128 dimensions, the model
+  the blog's search index ships (the browser uses an int8 copy; float here),
+- retrieve the top 4 by cosine, ties broken by chunk order (`retrieve.js`),
 - render with `prompt.build_messages` (byte-identical to `prompt.js`, guarded by
   the parity test), passage label `[i] Title — Heading`.
 

@@ -1,0 +1,31 @@
+[project]
+name = "small-rag-finetune"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Bart de Goede", email = "bdegoede@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.5.0",
+    "huggingface-hub>=2.2.0",
+    "mlx-lm>=0.31",
+    "model2vec>=0.6",
+    "numpy>=2.5.4",
+    "pyarrow>=26.0.0",
+]
+
+[project.scripts]
+small-rag-finetune = "small_rag_finetune:main"
+
+[build-system]
+requires = ["uv_build>=0.9.30,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "black>=26.10.1",
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
+]
