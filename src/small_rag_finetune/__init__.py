@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import click
@@ -62,3 +63,16 @@ def pilot(corpus: Path, out: Path, per_source: int, seed: int) -> None:
 
     rows, calls = run_pilot(corpus, out, list(SOURCES), per_source, seed=seed)
     click.echo(f"{len(rows)} examples, {len(calls)} calls -> {out}/report.md")
+
+
+@main.command()
+@click.option("--corpus", type=click.Path(path_type=Path), default=Path("data/corpus"))
+@click.option("--out", type=click.Path(path_type=Path), default=Path("data/v1"))
+@click.option("--seed", default=0, show_default=True)
+def generate(corpus: Path, out: Path, seed: int) -> None:
+    """Full dataset via the Message Batches API (resumable)."""
+    from .generate import QUOTAS, run_generate
+    from .sources import SOURCES
+
+    summary = run_generate(corpus, out, list(SOURCES), QUOTAS, seed=seed)
+    click.echo(json.dumps(summary, indent=2))
