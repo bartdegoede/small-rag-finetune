@@ -14,7 +14,13 @@ from pathlib import Path
 from sss_eval.chunk import split_sentences
 
 from .batch import run_batch
-from .claude import cost, parse_questions, question_params, teacher_params
+from .claude import (
+    TEACHER_GUIDANCE,
+    cost,
+    parse_questions,
+    question_params,
+    teacher_params,
+)
 from .examples import Example, examples_for, pick_gold
 from .index import SourceIndex
 from .pilot import NEAR_MISS_RATE, REMOVED_RATE, write_jsonl
@@ -67,7 +73,11 @@ def run_generate(
     client=None,
     model=None,
     poll: float = 60,
+    guidance: str = TEACHER_GUIDANCE,
+    sample: int | None = None,
 ) -> dict:
+    """`guidance` is the teacher-only answer style. `sample` answers only a
+    random subset of that many examples (a pilot of a new style)."""
     if client is None:
         import anthropic
 
@@ -99,15 +109,19 @@ def run_generate(
             indexes[s], s, gi, qs, use_near_miss=near, removed=removed, rng=rng
         )
 
+    keep = range(len(examples))
+    if sample is not None:
+        keep = sorted(random.Random(seed + 1).sample(keep, sample))
+    examples = [examples[k] for k in keep]
     t_reqs = {
-        f"t{k:05d}": teacher_params(TEACHER, e.messages())
-        for k, e in enumerate(examples)
+        f"t{k:05d}": teacher_params(TEACHER, e.messages(), guidance)
+        for k, e in zip(keep, examples)
     }
     t_res = run_batch(client, t_reqs, out_dir / "batches" / "teacher", poll=poll)
 
     splits: dict[str, list[tuple[Example, str]]] = {s: [] for s in SPLITS}
     dropped: Counter = Counter()
-    for k, e in enumerate(examples):
+    for k, e in zip(keep, examples):
         r = t_res.get(f"t{k:05d}")
         answer = " ".join(r["text"].split()) if r else None
         problem = target_problem(answer)

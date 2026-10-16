@@ -51,6 +51,18 @@ How to answer:
 - If they answer only part of the question, give that part; you may add a short clause that the blog does not go into more detail.
 - If the passages do not answer the question at all, reply with exactly: The blog does not seem to cover this."""
 
+# v3: answers a 0.6B model can imitate. v1/v2 targets combined several facts in
+# dense sentences; the student learned the density, not the reading, and got
+# the details wrong (docs/superpowers/specs/2026-10-16-v1-results.md).
+EXTRACTIVE_GUIDANCE = """
+
+How to answer:
+- Answer in one short sentence that states the fact the question asks for. Use a second short sentence only if the question asks for two things.
+- Reuse the wording of the passage that answers it; do not paraphrase, merge, or add facts from other passages.
+- Never mention the passages, passage numbers like [2], or phrases such as "according to".
+- If the passages answer only part of the question, answer that part and stop; do not say what is missing.
+- If the passages do not answer the question at all, reply with exactly: The blog does not seem to cover this."""
+
 _Q = re.compile(r"^Q\d+:\s*(.+?)\s*$", re.MULTILINE)
 _NEAR = re.compile(r"^NEAR:\s*(.+?)\s*$", re.MULTILINE)
 
@@ -81,14 +93,16 @@ def question_params(chunk) -> dict:
     }
 
 
-def teacher_params(model: str, messages: list[dict]) -> dict:
+def teacher_params(
+    model: str, messages: list[dict], guidance: str = TEACHER_GUIDANCE
+) -> dict:
     """The student's exact system + user messages; the guidance is teacher-only."""
     system, user = messages
     return {
         "model": model,
         "max_tokens": 4000,
         "output_config": {"effort": "low"},
-        "system": system["content"] + TEACHER_GUIDANCE,
+        "system": system["content"] + guidance,
         "messages": [{"role": "user", "content": user["content"]}],
     }
 

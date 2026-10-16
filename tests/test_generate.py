@@ -62,3 +62,17 @@ def test_generate_resumes_without_new_batches(tmp_path):
     second = run_generate(*args, client=client, model=FakeModel(), poll=0)
     assert client.batches.created == []
     assert first["examples"] == second["examples"]
+
+
+def test_generate_sample_and_guidance_shape_the_teacher_batch(tmp_path):
+    corpus(tmp_path / "corpus")
+    quotas = {"train": 4, "valid": 0, "test": 0}
+    args = (tmp_path / "corpus", tmp_path / "v3", ["src"], quotas)
+    client = FakeClient()
+    run_generate(
+        *args, client=client, model=FakeModel(), poll=0, guidance="\nSTYLE", sample=3
+    )
+    reqs = [r for b in client.batches.batches.values() for r in b]
+    teacher = [r for r in reqs if "system" in r["params"]]
+    assert len(teacher) == 3
+    assert all(r["params"]["system"].endswith("\nSTYLE") for r in teacher)

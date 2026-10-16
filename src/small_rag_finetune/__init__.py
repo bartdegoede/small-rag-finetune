@@ -69,12 +69,46 @@ def pilot(corpus: Path, out: Path, per_source: int, seed: int) -> None:
 @click.option("--corpus", type=click.Path(path_type=Path), default=Path("data/corpus"))
 @click.option("--out", type=click.Path(path_type=Path), default=Path("data/v1"))
 @click.option("--seed", default=0, show_default=True)
-def generate(corpus: Path, out: Path, seed: int) -> None:
+@click.option(
+    "--style",
+    type=click.Choice(["v1", "extractive"]),
+    default="v1",
+    show_default=True,
+    help="Teacher answer style (claude.py: TEACHER_GUIDANCE, EXTRACTIVE_GUIDANCE).",
+)
+@click.option("--sample", type=int, default=None, help="Answer only N random examples.")
+@click.option(
+    "--questions-from",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Reuse another dataset's question batch (e.g. data/v1) instead of paying again.",
+)
+def generate(
+    corpus: Path,
+    out: Path,
+    seed: int,
+    style: str,
+    sample: int | None,
+    questions_from: Path | None,
+) -> None:
     """Full dataset via the Message Batches API (resumable)."""
+    import shutil
+
+    from .claude import EXTRACTIVE_GUIDANCE, TEACHER_GUIDANCE
     from .generate import QUOTAS, run_generate
     from .sources import SOURCES
 
-    summary = run_generate(corpus, out, list(SOURCES), QUOTAS, seed=seed)
+    if questions_from is not None:
+        dest = out / "batches" / "questions" / "results.jsonl"
+        if not dest.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(
+                questions_from / "batches" / "questions" / "results.jsonl", dest
+            )
+    guidance = EXTRACTIVE_GUIDANCE if style == "extractive" else TEACHER_GUIDANCE
+    summary = run_generate(
+        corpus, out, list(SOURCES), QUOTAS, seed=seed, guidance=guidance, sample=sample
+    )
     click.echo(json.dumps(summary, indent=2))
 
 
@@ -130,4 +164,37 @@ def strip_hedges(src: Path, out: Path) -> None:
     (out / "summary.json").write_text(
         json.dumps({"source": str(src), **summary}, indent=2)
     )
+    click.echo(json.dumps(summary, indent=2))
+
+
+@main.command()
+@click.argument("data", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.argument("out", type=click.Path(path_type=Path))
+@click.option("--split", default="test", show_default=True)
+def dev_prompts(data: Path, out: Path, split: str) -> None:
+    """Held-out prompts for picking checkpoints (input for js/generate.mjs)."""
+    from .devjudge import dev_prompts as build
+
+    rows = build(data, split)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+    click.echo(f"wrote {len(rows)} prompts to {out}")
+
+
+@main.command()
+@click.argument("answers", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--prompts",
+    type=click.Path(exists=True, path_type=Path),
+    default=Path("runs/dev/prompts.jsonl"),
+)
+@click.option("--out", type=click.Path(path_type=Path), default=Path("runs/dev/judge"))
+def dev_judge(answers: Path, prompts: Path, out: Path) -> None:
+    """Grade one arm's answers to the dev prompts with Opus (Batch API)."""
+    import anthropic
+
+    from .devjudge import run_dev_judge
+
+    rows = [json.loads(x) for x in prompts.read_text().splitlines() if x.strip()]
+    summary = run_dev_judge(anthropic.Anthropic(), rows, answers, out)
     click.echo(json.dumps(summary, indent=2))

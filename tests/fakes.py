@@ -48,7 +48,12 @@ def small_corpus(root: Path) -> None:
     write_post(root, "lifetimes", "Lifetimes", "Rust lifetimes track borrows. " * 12)
 
 
+VERDICT = '{"label": "faithful", "unsupported_claims": [], "reason": "ok"}'
+
+
 def reply_for(params: dict) -> str:
+    if "format" in params.get("output_config", {}):
+        return VERDICT
     return FakeClient.ANSWER if "system" in params else FakeClient.QUESTIONS
 
 
