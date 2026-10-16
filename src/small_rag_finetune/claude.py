@@ -46,9 +46,10 @@ NEAR: ..."""
 TEACHER_GUIDANCE = """
 
 How to answer:
-- Answer the question directly in plain declarative sentences. Do not mention the passages, passage numbers like [2], or phrases such as "according to".
+- Answer the question directly in plain declarative sentences. Never mention the passages, passage numbers like [2], or phrases such as "according to".
 - Use only facts stated in the passages. Prefer one sentence; use a second only when the question needs it.
-- If the passages do not answer the question, reply with exactly: The blog does not seem to cover this."""
+- If they answer only part of the question, give that part; you may add a short clause that the blog does not go into more detail.
+- If the passages do not answer the question at all, reply with exactly: The blog does not seem to cover this."""
 
 _Q = re.compile(r"^Q\d+:\s*(.+?)\s*$", re.MULTILINE)
 _NEAR = re.compile(r"^NEAR:\s*(.+?)\s*$", re.MULTILINE)

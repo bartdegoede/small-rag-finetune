@@ -62,3 +62,11 @@ def test_cost_and_batch_discount():
 
 def test_target_keys():
     assert [target_key(m) for m in TEACHERS] == ["target_opus", "target_sonnet"]
+
+
+def test_teacher_guidance_rules():
+    from small_rag_finetune.claude import TEACHER_GUIDANCE as g
+
+    assert "Never mention the passages" in g
+    assert "only part of the question" in g
+    assert g.rstrip().endswith("The blog does not seem to cover this.")
