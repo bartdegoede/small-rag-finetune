@@ -49,7 +49,7 @@ def test_generate_writes_mlx_lm_files_meta_and_summary(tmp_path):
     keys = {"id", "source", "doc", "kind", "question", "gold_rank", "teacher"}
     assert keys <= set(meta[0])
     assert summary["examples"]["train"] == len(train)
-    assert summary["usd_batch"] > 0
+    assert summary["usd_batch"]["teacher"] > 0
     assert (out / "summary.json").exists()
 
 

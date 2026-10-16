@@ -146,7 +146,10 @@ def run_generate(
         "kinds": dict(Counter(e.kind for e, _ in kept)),
         "refusals": sum(a == REFUSAL for _, a in kept),
         "dropped": dict(dropped),
-        "usd_batch": round(_usd(q_res) + _usd(t_res), 2),
+        "usd_batch": {
+            "questions": round(_usd(q_res), 2),
+            "teacher": round(_usd(t_res), 2),
+        },
         "teacher": TEACHER,
         "seed": seed,
         "quotas": quotas,
