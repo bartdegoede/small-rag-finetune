@@ -1,6 +1,6 @@
 import json
 
-from small_rag_finetune.checkpoints import best_checkpoint, val_losses
+from small_rag_finetune.checkpoints import best_checkpoint, train_losses, val_losses
 
 LOG = (
     "\x1b[1m  iter   train_loss\x1b[0m\n"
@@ -15,6 +15,17 @@ LOG = (
 
 def test_val_losses_strip_ansi_and_skip_iteration_1():
     assert val_losses(LOG) == {566: 0.901, 1132: 0.874, 1698: 0.880}
+
+
+def test_val_losses_baseline_keeps_iteration_1():
+    assert val_losses(LOG, baseline=True)[1] == 1.712
+
+
+def test_train_losses_skip_val_and_save_lines():
+    assert train_losses(LOG + "\r   100    1.101 ▲       72      9.0k\n") == {
+        50: 1.077,
+        100: 1.101,
+    }
 
 
 def test_best_checkpoint_prepares_an_adapter_dir(tmp_path):

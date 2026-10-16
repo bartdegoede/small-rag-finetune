@@ -89,3 +89,27 @@ def best_checkpoint(log: Path, run_dir: Path) -> None:
     it, out = pick(log, run_dir)
     click.echo(f"val losses: {val_losses(log.read_text())}")
     click.echo(f"best: iteration {it} -> {out}")
+
+
+@main.command()
+@click.argument("log", type=click.Path(exists=True, path_type=Path))
+@click.argument("out", type=click.Path(path_type=Path))
+@click.option(
+    "--name", required=True, help="Model name for the title, e.g. SmolLM2-360M"
+)
+@click.option(
+    "--epoch-iters", default=2264.5, show_default=True, help="Iterations per epoch"
+)
+def loss_chart(log: Path, out: Path, name: str, epoch_iters: float) -> None:
+    """Draw a run's training and validation loss as a blog-style SVG."""
+    from .charts import loss_chart as draw
+    from .checkpoints import train_losses, val_losses
+
+    text = log.read_text()
+    uid = "viz-loss-" + "".join(c for c in name.lower() if c.isalnum())
+    svg = draw(
+        name, train_losses(text), val_losses(text, baseline=True), epoch_iters, uid
+    )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(svg + "\n")
+    click.echo(f"wrote {out}")

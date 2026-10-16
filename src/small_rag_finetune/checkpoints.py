@@ -6,12 +6,23 @@ from pathlib import Path
 
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 _VAL = re.compile(r"^\s*(\d+)\s+val\s+([0-9.]+)", re.MULTILINE)
+_TRAIN = re.compile(r"^\s*(\d+)\s+([0-9.]+)\s+[▲▼]", re.MULTILINE)
 
 
-def val_losses(log_text: str) -> dict[int, float]:
-    """Validation loss per iteration; iteration 1 is the untrained baseline."""
-    text = _ANSI.sub("", log_text)
-    return {int(i): float(v) for i, v in _VAL.findall(text) if int(i) > 1}
+def _clean(log_text: str) -> str:
+    return _ANSI.sub("", log_text).replace("\r", "\n")
+
+
+def val_losses(log_text: str, baseline: bool = False) -> dict[int, float]:
+    """Validation loss per iteration; iteration 1 is the untrained baseline,
+    left out unless asked for (it has no checkpoint)."""
+    found = _VAL.findall(_clean(log_text))
+    return {int(i): float(v) for i, v in found if baseline or int(i) > 1}
+
+
+def train_losses(log_text: str) -> dict[int, float]:
+    """Training loss per report (every 50 iterations by default)."""
+    return {int(i): float(v) for i, v in _TRAIN.findall(_clean(log_text))}
 
 
 def best_checkpoint(log: Path, run_dir: Path) -> tuple[int, Path]:
