@@ -23,25 +23,13 @@ from .claude import (
     target_key,
     teacher_params,
 )
-from .corpus import split_of
-from .examples import examples_for
+from .examples import examples_for, pick_gold
 from .index import SourceIndex
 from .prompt import REFUSAL
 
-MIN_SNIPPET = 300  # gold chunks shorter than this rarely support 3 questions
 REMOVED_RATE = 0.1  # share of answerable questions turned into "removed"
 NEAR_MISS_RATE = 0.5  # share of gold chunks that also get their near-miss question
 TARGET_EXAMPLES = 5000
-
-
-def pick_gold(index: SourceIndex, source: str, n: int, rng: random.Random) -> list[int]:
-    """One gold chunk from each of n random train-split documents."""
-    by_doc: dict[str, list[int]] = defaultdict(list)
-    for i, c in enumerate(index.chunks):
-        if len(c.snippet) >= MIN_SNIPPET and split_of(source, c.post) == "train":
-            by_doc[c.post].append(i)
-    docs = rng.sample(sorted(by_doc), min(n, len(by_doc)))
-    return [rng.choice(by_doc[d]) for d in docs]
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> None:
@@ -82,7 +70,7 @@ def run_pilot(
             }
             near = rng.random() < NEAR_MISS_RATE
             examples += examples_for(
-                index, name, gi, qs, use_near_miss=near, removed=removed
+                index, name, gi, qs, use_near_miss=near, removed=removed, rng=rng
             )
 
     def teach(job):
