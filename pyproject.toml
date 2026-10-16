@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Fine-tune small LMs to answer from retrieved passages, or refuse, for in-browser RAG"
 readme = "README.md"
 authors = [
-    { name = "Bart de Goede", email = "bdegoede@gmail.com" }
+    { name = "Bart de Goede" }
 ]
 requires-python = ">=3.12"
 dependencies = [
@@ -33,11 +33,5 @@ dev = [
     "ruff>=0.17.0",
 ]
 
-[tool.ruff]
-extend-exclude = ["src/small_rag_finetune/vendor"]
-
 [tool.pytest.ini_options]
 pythonpath = ["tests"]
-
-[tool.black]
-extend-exclude = "src/small_rag_finetune/vendor"
