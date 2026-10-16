@@ -178,10 +178,9 @@ def write_splits(examples: list[dict], out_dir: Path, n_valid: int) -> None:
     splits = {"valid": examples[:n_valid], "train": examples[n_valid:]}
     for name, rows in splits.items():
         with open(out_dir / f"{name}.jsonl", "w") as f:
-            for r in rows:
-                f.write(
-                    json.dumps({"messages": r["messages"]}, ensure_ascii=False) + "\n"
-                )
+            f.writelines(
+                json.dumps({"messages": r["messages"]}, ensure_ascii=False) + "\n"
+                for r in rows
+            )
         with open(out_dir / f"{name}.kinds.jsonl", "w") as f:
-            for r in rows:
-                f.write(json.dumps({"kind": r["kind"]}) + "\n")
+            f.writelines(json.dumps({"kind": r["kind"]}) + "\n" for r in rows)
