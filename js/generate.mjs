@@ -3,20 +3,24 @@
 // scripts/ask_eval/run_local.mjs). One JSON row per prompt on stdout, in the
 // format the blog's judge.py reads ({arm, id, summary}).
 //   node js/generate.mjs <model-dir> <prompts.jsonl> [n] > runs/eval/<arm>.jsonl
+// ARM=<name> overrides the arm (default: the model dir's name); REP_PENALTY
+// overrides the repetition penalty (default 1.15, the blog page's).
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pipeline, env } from "@huggingface/transformers";
 
 const [dir, promptsPath, n] = process.argv.slice(2);
-const arm = path.basename(dir);
+const model = path.basename(dir);
+const arm = process.env.ARM ?? model;
+const repetition_penalty = Number(process.env.REP_PENALTY ?? 1.15);
 env.allowRemoteModels = false;
 env.localModelPath = path.dirname(path.resolve(dir));
-const gen = await pipeline("text-generation", arm, { dtype: "q4f16", device: "cpu" });
+const gen = await pipeline("text-generation", model, { dtype: "q4f16", device: "cpu" });
 const rows = readFileSync(promptsPath, "utf8").trim().split("\n").map(JSON.parse);
 for (const r of n ? rows.slice(0, Number(n)) : rows) {
   const t0 = performance.now();
   const out = await gen(r.messages, {
-    max_new_tokens: 120, do_sample: false, repetition_penalty: 1.15,
+    max_new_tokens: 120, do_sample: false, repetition_penalty,
     tokenizer_encode_kwargs: { enable_thinking: false },
   });
   // Same clean-up as run_local.mjs: drop an empty Qwen3 think block.
