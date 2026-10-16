@@ -8,12 +8,15 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=1.15.0",
     "click>=8.5.0",
     "huggingface-hub>=2.2.0",
     "mlx-lm>=0.31",
     "model2vec>=0.6",
     "numpy>=2.5.4",
     "pyarrow>=26.0.0",
+    "pyyaml>=6.0.3",
+    "static-site-search-eval==0.1.0",
 ]
 
 [project.scripts]
