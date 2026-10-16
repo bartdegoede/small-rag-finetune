@@ -123,26 +123,46 @@ def build(n_answerable: int, n_refusal: int, seed: int = 0) -> list[dict]:
     # 3 best chunks from other documents; all 4 in retrieval order.
     for doc in ans_ids[:n_answerable]:
         row = answerable[doc]
-        gold = max(np.flatnonzero(doc_of == doc),
-                   key=lambda i: _overlap(row["answer"], chunks[i].text))
+        gold = max(
+            np.flatnonzero(doc_of == doc),
+            key=lambda i: _overlap(row["answer"], chunks[i].text),
+        )
         s_all, s_other = scores_for(row["question"]), scores_for(row["question"], doc)
         others = np.argsort(-s_other)[: TOP_K - 1]
-        out.append(_example(row["question"], by_score([gold, *others], s_all),
-                            clamp_sentences(row["answer"]), "answerable"))
+        out.append(
+            _example(
+                row["question"],
+                by_score([gold, *others], s_all),
+                clamp_sentences(row["answer"]),
+                "answerable",
+            )
+        )
 
     # Refusal by removal: same kind of question, its own document excluded.
     for doc in ans_ids[n_answerable:]:
         row = answerable[doc]
         s = scores_for(row["question"], doc)
-        out.append(_example(row["question"], by_score(np.argsort(-s)[:TOP_K], s),
-                            REFUSAL, "refusal-removed"))
+        out.append(
+            _example(
+                row["question"],
+                by_score(np.argsort(-s)[:TOP_K], s),
+                REFUSAL,
+                "refusal-removed",
+            )
+        )
 
     # Refusal from the hallucination set: its own context never answers it.
     for j in rng.sample(range(len(unanswerable)), n_unanswerable):
         row = unanswerable[j]
         s = scores_for(row["question"])
-        out.append(_example(row["question"], by_score(np.argsort(-s)[:TOP_K], s),
-                            REFUSAL, "refusal-unanswerable"))
+        out.append(
+            _example(
+                row["question"],
+                by_score(np.argsort(-s)[:TOP_K], s),
+                REFUSAL,
+                "refusal-unanswerable",
+            )
+        )
 
     rng.shuffle(out)
     return out
@@ -159,7 +179,9 @@ def write_splits(examples: list[dict], out_dir: Path, n_valid: int) -> None:
     for name, rows in splits.items():
         with open(out_dir / f"{name}.jsonl", "w") as f:
             for r in rows:
-                f.write(json.dumps({"messages": r["messages"]}, ensure_ascii=False) + "\n")
+                f.write(
+                    json.dumps({"messages": r["messages"]}, ensure_ascii=False) + "\n"
+                )
         with open(out_dir / f"{name}.kinds.jsonl", "w") as f:
             for r in rows:
                 f.write(json.dumps({"kind": r["kind"]}) + "\n")
