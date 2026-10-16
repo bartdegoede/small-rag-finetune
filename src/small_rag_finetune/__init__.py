@@ -46,3 +46,19 @@ def build_corpus(sources: Path, out: Path) -> None:
     for src in SOURCES.values():
         n = write_corpus(src, sources / src.name, out)
         click.echo(f"{src.name}: {n} documents -> {out / src.name}")
+
+
+@main.command()
+@click.option("--corpus", type=click.Path(path_type=Path), default=Path("data/corpus"))
+@click.option("--out", type=click.Path(path_type=Path), default=Path("data/pilot"))
+@click.option(
+    "--per-source", default=5, show_default=True, help="Documents per source."
+)
+@click.option("--seed", default=0, show_default=True)
+def pilot(corpus: Path, out: Path, per_source: int, seed: int) -> None:
+    """Questions + both teachers for a few documents; writes a cost report."""
+    from .pilot import run_pilot
+    from .sources import SOURCES
+
+    rows, calls = run_pilot(corpus, out, list(SOURCES), per_source, seed=seed)
+    click.echo(f"{len(rows)} examples, {len(calls)} calls -> {out}/report.md")
