@@ -91,7 +91,10 @@ def main(src: str, out: str, tokenizer: str) -> None:
     subprocess.run(
         [sys.executable, "-m", "onnxruntime_genai.models.builder",
          "-i", str(src_p), "-o", str(built), "-p", "int4", "-e", "webgpu",
-         "-c", str(out_p / "_cache")],
+         "-c", str(out_p / "_cache"),
+         # Qwen3's per-head Q/K norm fused into GroupQueryAttention is
+         # CUDA/WebGPU-only; onnxruntime's CPU (and WASM) kernel rejects it.
+         "--extra_options", "fuse_qk_norm_gqa=false"],
         check=True,
     )
     onnx_dir = out_p / "onnx"
