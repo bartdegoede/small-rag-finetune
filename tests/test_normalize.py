@@ -1,4 +1,10 @@
-from small_rag_finetune.normalize import go_blog, rust_blog, rust_rfc
+from small_rag_finetune.normalize import (
+    go_blog,
+    pep,
+    rst_to_markdown,
+    rust_blog,
+    rust_rfc,
+)
 
 
 def write(tmp_path, rel, text):
@@ -67,3 +73,71 @@ def test_rust_rfc_titles_from_filename_and_drops_metadata(tmp_path):
 
 def test_rust_rfc_skips_non_rfc_files(tmp_path):
     assert rust_rfc(write(tmp_path, "text/README.md", "# hi")) is None
+
+
+PEP_TEXT = """PEP: 9999
+Title: Example Things
+Author: A <a@b.c>,
+        B <b@c.d>
+Status: Final
+
+Abstract
+========
+
+This uses ``x := 1`` and :pep:`8` and `a link <https://x.org>`_.
+
+Rationale
+=========
+
+Example::
+
+    code here
+    more code
+
+Details
+-------
+
+Text after.
+
+.. note::
+
+   Dropped note.
+
+Final line.
+"""
+
+
+def pep_body() -> str:
+    return rst_to_markdown(PEP_TEXT.split("\n\n", 1)[1])
+
+
+def test_pep_title_and_header_dropped(tmp_path):
+    doc = pep(write(tmp_path, "peps/pep-9999.rst", PEP_TEXT))
+    assert doc.slug == "pep-9999"
+    assert doc.title == "PEP 9999: Example Things"
+    assert "Author" not in doc.body and "B <b@c.d>" not in doc.body
+
+
+def test_rst_headings_become_markdown_levels_in_order_of_appearance():
+    lines = pep_body().splitlines()
+    assert "# Abstract" in lines
+    assert "# Rationale" in lines
+    assert "## Details" in lines
+
+
+def test_rst_inline_markup_and_blocks():
+    md = pep_body()
+    assert "This uses `x := 1` and PEP 8 and a link." in md
+    assert "Example:" in md.splitlines()
+    assert "code here" not in md
+    assert "Dropped note." not in md
+    assert "Text after." in md and "Final line." in md
+
+
+def test_overlined_title():
+    md = rst_to_markdown("=====\nTitle\n=====\n\nBody.\n")
+    assert md.splitlines()[0] == "# Title"
+
+
+def test_non_pep_file_is_skipped(tmp_path):
+    assert pep(write(tmp_path, "peps/conf.rst", "x")) is None
