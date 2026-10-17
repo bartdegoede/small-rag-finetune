@@ -10,21 +10,6 @@ def main() -> None:
 
 
 @main.command()
-@click.option("--answerable", default=750, show_default=True)
-@click.option("--refusal", default=250, show_default=True)
-@click.option("--valid", default=100, show_default=True)
-@click.option("--seed", default=0, show_default=True)
-@click.option("--out", type=click.Path(path_type=Path), default=Path("data/smoke"))
-def build_data(answerable: int, refusal: int, valid: int, seed: int, out: Path) -> None:
-    """Reshape neural-bridge's open RAG data into the ask-my-blog prompt."""
-    from .data import build, write_splits
-
-    examples = build(answerable, refusal, seed)
-    write_splits(examples, out, valid)
-    click.echo(f"{len(examples)} examples -> {out}/ ({valid} valid)")
-
-
-@main.command()
 @click.option("--root", type=click.Path(path_type=Path), default=Path("data/sources"))
 def fetch_sources(root: Path) -> None:
     """Check out every source at its pinned commit."""
@@ -116,7 +101,10 @@ def generate(
 @click.argument("log", type=click.Path(exists=True, path_type=Path))
 @click.argument("run_dir", type=click.Path(exists=True, path_type=Path))
 def best_checkpoint(log: Path, run_dir: Path) -> None:
-    """Pick the lowest-validation-loss checkpoint into <run_dir>-best/."""
+    """Pick the lowest-validation-loss checkpoint into <run_dir>-best/.
+
+    How v1 and v2 were picked; from v3 on, dev-judge picks on judged answers,
+    because validation loss kept falling while the answers got worse."""
     from .checkpoints import best_checkpoint as pick
     from .checkpoints import val_losses
 

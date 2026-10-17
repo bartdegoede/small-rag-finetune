@@ -1,7 +1,7 @@
 """Everything that talks to Claude: prompts, request params, parsing, cost.
 
 Requests are plain dicts so the same params work for messages.create (pilot)
-and for Message Batches (plan 2). Replies are plain text with a fixed line
+and for Message Batches (generate). Replies are plain text with a fixed line
 format; no structured-output features needed.
 """
 
@@ -53,7 +53,7 @@ How to answer:
 
 # v3: answers a 0.6B model can imitate. v1/v2 targets combined several facts in
 # dense sentences; the student learned the density, not the reading, and got
-# the details wrong (docs/superpowers/specs/2026-10-16-v1-results.md).
+# the details wrong (docs/results.md).
 EXTRACTIVE_GUIDANCE = """
 
 How to answer:

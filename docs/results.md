@@ -1,8 +1,9 @@
-# v1 results: fine-tuning on dataset v1
+# Results: v1 to v4
 
-Date: 2026-10-16. Plan: `docs/superpowers/plans/2026-10-16-plan3-train-eval.md`.
+Date: 2026-10-16 to 2026-10-17. Each version's section was written when its
+results came in; the summary below is about v1.
 
-## Summary
+## v1 summary
 
 The v1 fine-tune does not beat the base models on answerable questions, and with
 the blog's decoding settings it makes Qwen3-0.6B worse. It does learn to refuse:

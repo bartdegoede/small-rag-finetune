@@ -1,6 +1,7 @@
 """prompt.py must produce byte-identical messages to the blog's prompt.js."""
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -9,7 +10,9 @@ import pytest
 
 from small_rag_finetune.prompt import build_messages
 
-PROMPT_JS = Path.home() / "projects/blog/assets/js/ask/prompt.js"
+# A checkout of github.com/bartdegoede/blog; BLOG_DIR overrides the default.
+BLOG_DIR = Path(os.environ.get("BLOG_DIR", Path.home() / "projects/blog"))
+PROMPT_JS = BLOG_DIR / "assets/js/ask/prompt.js"
 
 CASES = [
     (

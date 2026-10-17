@@ -4,7 +4,7 @@ Date: 2026-10-15. Status: approved design, before the pilot.
 
 ## Why
 
-The blog's /ask/ page eval (blog repo,
+The blog's /ask/ page eval ([bartdegoede/blog](https://github.com/bartdegoede/blog),
 `docs/superpowers/specs/2026-10-12-ask-my-blog-results.md`) found that browser-sized
 models can't do grounded 2-sentence answers: faithful answers out of 30 were
 0-3 for the ≤350MB models, 15 for Qwen3-0.6B, 28 for Gemma 4 E2B (3GB).

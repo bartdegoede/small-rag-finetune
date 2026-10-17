@@ -4,7 +4,8 @@
 // format the blog's judge.py reads ({arm, id, summary}).
 //   node js/generate.mjs <model-dir> <prompts.jsonl> [n] > runs/eval/<arm>.jsonl
 // ARM=<name> overrides the arm (default: the model dir's name); REP_PENALTY
-// overrides the repetition penalty (default 1.15, the blog page's).
+// overrides the repetition penalty (default 1.0: what the blog page uses for
+// Qwen3-0.6B, and what every result in docs/results.md from v2 on used).
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pipeline, env } from "@huggingface/transformers";
@@ -12,7 +13,7 @@ import { pipeline, env } from "@huggingface/transformers";
 const [dir, promptsPath, n] = process.argv.slice(2);
 const model = path.basename(dir);
 const arm = process.env.ARM ?? model;
-const repetition_penalty = Number(process.env.REP_PENALTY ?? 1.15);
+const repetition_penalty = Number(process.env.REP_PENALTY ?? 1.0);
 env.allowRemoteModels = false;
 env.localModelPath = path.dirname(path.resolve(dir));
 const gen = await pipeline("text-generation", model, { dtype: "q4f16", device: "cpu" });

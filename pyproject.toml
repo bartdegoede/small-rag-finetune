@@ -3,6 +3,7 @@ name = "small-rag-finetune"
 version = "0.1.0"
 description = "Fine-tune small LMs to answer from retrieved passages, or refuse, for in-browser RAG"
 readme = "README.md"
+license = "MIT"
 authors = [
     { name = "Bart de Goede" }
 ]
@@ -14,7 +15,6 @@ dependencies = [
     "mlx-lm>=0.31",
     "model2vec>=0.6",
     "numpy>=2.5.4",
-    "pyarrow>=26.0.0",
     "pyyaml>=6.0.3",
     "static-site-search-eval==0.1.0",
 ]
