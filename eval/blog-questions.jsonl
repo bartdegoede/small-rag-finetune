@@ -1,0 +1,45 @@
+{"id": "q01", "question": "How did the blog use Lunr to add search?"}
+{"id": "q02", "question": "What is pydub used for in the text-to-speech script?"}
+{"id": "q03", "question": "What does the blog use the mmh3 library for?"}
+{"id": "q04", "question": "How is MurmurHash used in the blog's examples?"}
+{"id": "q05", "question": "How do I add OpenSearch support to my website?"}
+{"id": "q06", "question": "How did the blog use Cloudflare to get SSL working?"}
+{"id": "q07", "question": "How does TF-IDF ranking work in the Python search engine?"}
+{"id": "q08", "question": "Why use sentence-transformers instead of OpenAI for embeddings?"}
+{"id": "q09", "question": "Why did the blog switch to the PaperMod theme?"}
+{"id": "q10", "question": "Which Qwen3 model does the local coding agent run?"}
+{"id": "q11", "question": "How can I find documents by their meaning rather than by matching keywords?"}
+{"id": "q12", "question": "What's a memory-cheap way to test set membership if occasional wrong answers are OK?"}
+{"id": "q13", "question": "How can I rank millions of documents by relevance to a query in milliseconds?"}
+{"id": "q14", "question": "How can I turn my written articles into something readers can listen to?"}
+{"id": "q15", "question": "How do I get an HTTPS certificate for my own domain on free static hosting?"}
+{"id": "q16", "question": "What happened when an AI assistant was asked to overhaul an old website setup?"}
+{"id": "q17", "question": "What can I do when my AI subscription allowance runs out mid-month?"}
+{"id": "q18", "question": "How do I build an AI that plays a monster-fighting game on its own?"}
+{"id": "q19", "question": "What did the old Python search project switch to after its Wikipedia data source was discontinued?"}
+{"id": "q20", "question": "How can visitors search my site straight from the browser's address bar?"}
+{"id": "q21", "question": "How can I add search to a static website?"}
+{"id": "q22", "question": "What has the blog written about building a search engine in Python?"}
+{"id": "q23", "question": "How can I serve my site over HTTPS for free?"}
+{"id": "q24", "question": "What has the blog written about working with AI coding agents?"}
+{"id": "q25", "question": "How can I generate a search index when the site is built?"}
+{"id": "q26", "question": "What has the blog written about hashing and bit arrays?"}
+{"id": "q27", "question": "How can I make an audio version of a blog post?"}
+{"id": "q28", "question": "What does the blog say about embeddings and cosine similarity?"}
+{"id": "q29", "question": "What has the blog written about customizing a Hugo theme?"}
+{"id": "q30", "question": "What has the blog written about running language models on your own hardware?"}
+{"id": "n01", "question": "How do I bake sourdough bread at home?", "covered": false}
+{"id": "n02", "question": "What's a good training plan for a first marathon?", "covered": false}
+{"id": "n03", "question": "How often should I repot a fiddle leaf fig?", "covered": false}
+{"id": "n04", "question": "What are the best day trips from Amsterdam?", "covered": false}
+{"id": "n05", "question": "How much does Algolia cost per month?", "covered": false}
+{"id": "n06", "question": "How do I fine-tune Kokoro to speak in my own voice?", "covered": false}
+{"id": "n07", "question": "Which GPU should I buy to run Llama 70B locally?", "covered": false}
+{"id": "n08", "question": "How do I set up Pagefind search on a Hugo site?", "covered": false}
+{"id": "n09", "question": "How do I deploy a Hugo site to Netlify?", "covered": false}
+{"id": "n10", "question": "How does BM25 ranking improve on TF-IDF?", "covered": false}
+{"id": "n11", "question": "How do I store embeddings in Postgres with pgvector?", "covered": false}
+{"id": "n12", "question": "How do I add Disqus comments to my Hugo blog?", "covered": false}
+{"id": "n13", "question": "How do I transcribe a podcast episode with Whisper?", "covered": false}
+{"id": "n14", "question": "How do I set up an Elasticsearch cluster for my site search?", "covered": false}
+{"id": "n15", "question": "How do I run Stable Diffusion locally on a Mac?", "covered": false}

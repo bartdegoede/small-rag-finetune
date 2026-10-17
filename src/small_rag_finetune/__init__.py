@@ -238,3 +238,28 @@ def hf_stage_model(fused: Path, onnx: Path, out: Path) -> None:
     from .publish import stage_model
 
     click.echo("\n".join(stage_model(fused, onnx, out)))
+
+
+@main.command("eval-prompts")
+@click.argument("out", type=click.Path(path_type=Path))
+@click.option(
+    "--corpus",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    required=True,
+    help="Folder of markdown posts with front matter (e.g. Hugo's content/post).",
+)
+@click.option(
+    "--questions",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help='JSONL: {"id", "question", "covered": true|false}.',
+)
+def eval_prompts(out: Path, corpus: Path, questions: Path) -> None:
+    """Prompts for your own site's questions (input for generate.mjs, dev-judge)."""
+    from .index import SourceIndex
+    from .sitecheck import read_questions, site_prompts
+
+    rows = site_prompts(SourceIndex.build(corpus), read_questions(questions))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+    click.echo(f"{len(rows)} prompts -> {out}")
