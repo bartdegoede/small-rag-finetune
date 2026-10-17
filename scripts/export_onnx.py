@@ -83,6 +83,60 @@ def fix_kv_dims(model, config: dict) -> None:
                 d.dim_value = head_dim
 
 
+def unfuse_embedding(model) -> None:
+    """The builder reads the tied 4-bit embedding with GatherBlockQuantized, a
+    contrib op onnxruntime-web's WASM build doesn't have ("Failed to find
+    kernel"), so on WASM the model wouldn't load at all. Rewrite it with
+    standard ops over the same packed weights: gather the token rows and their
+    scales, split each byte into two 4-bit values (low nibble first), subtract
+    the zero point 8 and scale per block. Same numbers, same file size."""
+    from onnx import TensorProto, helper
+
+    g = model.graph
+    [node] = [n for n in g.node if n.op_type == "GatherBlockQuantized"]
+    attrs = {a.name: helper.get_attribute_value(a) for a in node.attribute}
+    assert attrs.get("bits", 4) == 4 and attrs.get("gather_axis", 0) == 0
+    assert len(node.input) == 3, "expects symmetric quantization (no zero points)"
+    data, ids, scales = node.input
+    block = attrs["block_size"]
+    name = node.name
+    out = node.output[0]
+
+    def c(suffix, value):
+        t = helper.make_tensor(f"{name}/{suffix}", TensorProto.INT64, [len(value)], value)
+        g.initializer.append(t)
+        return t.name
+
+    def u8(suffix, value):
+        t = helper.make_tensor(f"{name}/{suffix}", TensorProto.UINT8, [], [value])
+        g.initializer.append(t)
+        return t.name
+
+    zero = helper.make_tensor(f"{name}/zero", TensorProto.FLOAT16, [], [8.0])
+    g.initializer.append(zero)
+    v = lambda s: f"{name}/{s}"  # noqa: E731
+    nodes = [
+        helper.make_node("Gather", [data, ids], [v("packed")], axis=0),
+        helper.make_node("BitwiseAnd", [v("packed"), u8("mask", 15)], [v("lo")]),
+        helper.make_node("BitShift", [v("packed"), u8("four", 4)], [v("hi")], direction="RIGHT"),
+        helper.make_node("Unsqueeze", [v("lo"), c("last", [-1])], [v("lo1")]),
+        helper.make_node("Unsqueeze", [v("hi"), c("last2", [-1])], [v("hi1")]),
+        helper.make_node("Concat", [v("lo1"), v("hi1")], [v("pairs")], axis=-1),
+        helper.make_node("Cast", [v("pairs")], [v("q")], to=TensorProto.FLOAT16),
+        helper.make_node("Sub", [v("q"), zero.name], [v("centred")]),
+        # [batch, seq, n_blocks, block] times the token's [batch, seq, n_blocks, 1] scales
+        helper.make_node("Reshape", [v("centred"), c("blocks", [0, 0, -1, block])], [v("blocks_q")]),
+        helper.make_node("Gather", [scales, ids], [v("row_scales")], axis=0),
+        helper.make_node("Unsqueeze", [v("row_scales"), c("last3", [-1])], [v("row_scales1")]),
+        helper.make_node("Mul", [v("blocks_q"), v("row_scales1")], [v("deq")]),
+        helper.make_node("Reshape", [v("deq"), c("flat", [0, 0, -1])], [out]),
+    ]
+    at = list(g.node).index(node)
+    g.node.remove(node)
+    for k, n in enumerate(nodes):
+        g.node.insert(at + k, n)
+
+
 def main(src: str, out: str, tokenizer: str) -> None:
     import onnx
 
@@ -102,6 +156,7 @@ def main(src: str, out: str, tokenizer: str) -> None:
     # One self-contained file (< 2GB), so transformers.js needs no external data.
     model = onnx.load(str(built / "model.onnx"), load_external_data=True)
     fix_kv_dims(model, json.loads((src_p / "config.json").read_text()))
+    unfuse_embedding(model)
     onnx.save(model, str(onnx_dir / "model_q4f16.onnx"), save_as_external_data=False)
     for name in CONFIG_FILES:
         if (src_p / name).exists():
