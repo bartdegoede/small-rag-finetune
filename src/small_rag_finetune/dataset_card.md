@@ -58,8 +58,8 @@ Code, results and the full write-up of what each version did to the model:
 
 This dataset is synthetic. **The questions were written by Claude Sonnet 5.5 and
 the answers by Claude Opus 5.5** (Anthropic), through the Message Batches API.
-Nobody reviewed the examples by hand. Answers were filtered automatically (over
-two sentences, or mentioning "passages", was dropped) and checked by sampling.
+Answers were filtered automatically (over two sentences, or mentioning
+"passages", was dropped) and read through by hand, but none were edited.
 
 ## Configurations
 
@@ -145,8 +145,8 @@ answers) is released under CC-BY-4.0.
 
 - English technical writing about Go, Rust and Python only. The system prompt
   says "blog" for every source.
-- Synthetic and not reviewed by hand: some answers will be wrong or refuse when
-  they shouldn't.
+- Synthetic and not corrected by hand: some answers will be wrong or refuse
+  when they shouldn't.
 - The refusal is one fixed sentence; a model trained on this will use exactly
   that wording.
 
