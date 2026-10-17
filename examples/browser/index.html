@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ask the site</title>
+  <style>
+    :root { color-scheme: light dark; --muted: #6b6b6b; --line: #d4d4d4; }
+    @media (prefers-color-scheme: dark) { :root { --muted: #a0a0a0; --line: #3a3a3a; } }
+    body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+    form { display: flex; gap: 0.5rem; }
+    input { flex: 1; font: inherit; padding: 0.5rem; }
+    button { font: inherit; padding: 0.5rem 1rem; }
+    #status { color: var(--muted); min-height: 1.5em; }
+    #answer { font-size: 1.1rem; min-height: 1.5em; }
+    #sources { padding-left: 0; list-style: none; }
+    #sources li { border-top: 1px solid var(--line); padding: 0.5rem 0; }
+    #sources p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>Ask the site</h1>
+  <form id="ask">
+    <input name="q" placeholder="Ask a question about the posts" autocomplete="off" required>
+    <button>Ask</button>
+  </form>
+  <p id="status"></p>
+  <p id="answer" aria-live="polite"></p>
+  <ol id="sources"></ol>
+  <script type="module" src="./ask.js"></script>
+</body>
+</html>

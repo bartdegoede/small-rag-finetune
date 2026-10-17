@@ -7,3 +7,4 @@ data/
 runs/
 logs/
 dist/
+examples/browser/search/

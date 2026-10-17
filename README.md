@@ -11,8 +11,16 @@ on a Mac, picks a checkpoint on judged answers, exports it to the ONNX q4f16
 layout transformers.js loads, and scores it on the blog's 45 evaluation
 questions.
 
-**Dataset:** [bartdegoede/small-rag-answers](https://huggingface.co/datasets/bartdegoede/small-rag-answers)
-on Hugging Face. **Results:** [`docs/results.md`](docs/results.md).
+- **Model:** [bartdegoede/qwen3-0.6b-small-rag](https://huggingface.co/bartdegoede/qwen3-0.6b-small-rag)
+  (v3), ready for transformers.js.
+- **Dataset:** [bartdegoede/small-rag-answers](https://huggingface.co/datasets/bartdegoede/small-rag-answers).
+- **Use it on your own site:** [`examples/browser/`](examples/browser/) is a
+  static "ask the site" page, and "Evaluate it on your own site" below checks how
+  well it does on your posts.
+- **Results:** [`docs/results.md`](docs/results.md).
+
+The training data comes from Go, Rust and Python writing, not from the blog it
+was built for, so nothing in the model is specific to that blog.
 
 ## Results
 
@@ -141,9 +149,15 @@ uv run scripts/export_onnx.py runs/fused/v3-qwen3-0.6b-it2264 runs/onnx/v3-qwen3
 
 `export_onnx.py` is a standalone script with its own dependencies (PEP 723). The
 output loads in transformers.js 4.3.1 with `dtype: "q4f16"`, on both WebGPU and
-WASM, and is smaller than the official files: Qwen3-0.6B 346 MB (official
-570 MB), SmolLM2-360M 195 MB (official 272 MB). The docstring explains the two
-fixes it applies: the KV-cache dimension and the inlined chat template.
+WASM (tested in headless Chromium), and is smaller than the official files:
+Qwen3-0.6B 346 MB (official 570 MB), SmolLM2-360M 195 MB (official 272 MB). It
+applies three fixes, each explained in its docstring: the KV-cache dimension,
+the inlined chat template, and the 4-bit embedding rewritten in standard ops,
+because onnxruntime-web's WASM build lacks the `GatherBlockQuantized` kernel.
+
+`hf-stage-model` lays out the Hub repo: the merged weights for transformers and
+MLX, the ONNX file under `onnx/`, greedy generation defaults and the card in
+`src/small_rag_finetune/model_card.md`.
 
 ## Picking a checkpoint
 
@@ -162,36 +176,61 @@ uv run small-rag-finetune dev-judge runs/dev/dev-v3-it2264.jsonl
 Pick the checkpoint with the most faithful answers. The blog's 45 questions are
 kept for one final check of the picked checkpoint.
 
-## Evaluation on the blog
+## Evaluate it on your own site
 
-Answer the blog's 45 questions with transformers.js, using the blog page's
-decoding settings (greedy, at most 120 new tokens, repetition penalty 1.0 by
-default; `REP_PENALTY` overrides it):
+Write 30 to 50 questions about your posts in a JSONL file: most that your posts
+answer, and some they don't, marked `"covered": false` (the right answer to
+those is the refusal). `eval/blog-questions.jsonl` is the example, the 45
+questions for bart.degoe.de:
 
-```bash
-ARM=v3-qwen3-0.6b node js/generate.mjs runs/onnx/v3-qwen3-0.6b-it2264 eval/blog-prompts.jsonl \
-  > runs/eval/v3-qwen3-0.6b.jsonl
+```json
+{"id": "q10", "question": "Which Qwen3 model does the local coding agent run?"}
+{"id": "n07", "question": "Which GPU should I buy to run Llama 70B locally?", "covered": false}
 ```
 
-The answers are graded by the blog repo's judge (Claude Opus 5.5; about $0.40
-per model), which labels each answer *faithful*, *unsupported* or *non-answer*.
-Run it from a checkout of the blog:
+Then build the prompts from your posts (same chunking and retrieval as the
+browser page), answer them with the model through transformers.js, and have
+Claude Opus 5.5 grade each answer against its passages (Batch API, about $0.20
+for 45 questions; needs `ANTHROPIC_API_KEY`):
 
 ```bash
-uv run python scripts/ask_eval/judge.py --runs-dir <this repo>/runs/eval \
-  --out <this repo>/runs/eval/judgements.jsonl --arm v3-qwen3-0.6b
+uv run small-rag-finetune eval-prompts runs/site/prompts.jsonl \
+  --corpus path/to/your/posts --questions my-questions.jsonl
+uv run hf download bartdegoede/qwen3-0.6b-small-rag --include "*.json" --include "*.txt" \
+  --include "onnx/*" --local-dir runs/onnx/qwen3-0.6b-small-rag   # the 330 MB browser build only
+ARM=small-rag node js/generate.mjs runs/onnx/qwen3-0.6b-small-rag runs/site/prompts.jsonl \
+  > runs/site/small-rag.jsonl
+uv run small-rag-finetune dev-judge runs/site/small-rag.jsonl \
+  --prompts runs/site/prompts.jsonl --out runs/site/judge
 ```
 
-Compare against the base model exported the same way, so the fine-tune is the
-only difference.
+The summary counts *faithful*, *unsupported* (a claim the passages don't
+support) and *non-answer* (a wrong refusal, or rambling), separately for
+`answered` (questions your posts cover) and `refused` (questions they don't).
+Run the base model the same way to see whether the fine-tune helps on your site:
+download `onnx-community/Qwen3-0.6B-ONNX` with the same `--include` flags (but
+`--include "onnx/model_q4f16.onnx"`, as that repo has every precision). On bart.degoe.de's
+posts as they are now, the fine-tune gets 18 of 30 right and refuses 13 of 15
+correctly.
 
-## Publishing the dataset
+The published results in [`docs/results.md`](docs/results.md) use
+`eval/blog-prompts.jsonl` instead: the same questions with the passages frozen
+when the eval was made, graded by the blog repo's `scripts/ask_eval/judge.py`
+with the same rubric. Since then a new post changed the top 4 for about half the
+questions, so rebuilding the prompts gives different numbers.
+
+`js/generate.mjs` uses the browser page's decoding settings: greedy, at most 120
+new tokens, repetition penalty 1.0 (`REP_PENALTY` overrides it).
+
+## Publishing
 
 ```bash
-uv run small-rag-finetune hf-export dist/hf   # v3, broad and v1 configs, card, licences
+uv run small-rag-finetune hf-export dist/hf   # dataset: v3, broad and v1 configs, card, licences
+uv run small-rag-finetune hf-stage-model runs/fused/v3-qwen3-0.6b-it2264 \
+  runs/onnx/v3-qwen3-0.6b-it2264 dist/model/qwen3-0.6b-small-rag   # model
 ```
 
-The card is `src/small_rag_finetune/dataset_card.md`.
+The cards are `src/small_rag_finetune/dataset_card.md` and `model_card.md`.
 
 ## Development
 
