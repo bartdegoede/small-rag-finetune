@@ -89,7 +89,8 @@ GOAL: ..."""
 BROAD_GUIDANCE = """
 
 How to answer:
-- The question is broad. Say in one or two short sentences what the passages cover on it, reusing their wording: for "what has the blog written about X", name what the posts explain; for "how can I ...", give the approach the passages describe.
+- The question is broad. Answer in one short sentence of at most 40 words, reusing the passages' wording: for "what has the blog written about X", say what the post explains; for "how can I ...", give the approach the passages describe. Use a second short sentence only if one cannot hold it.
+- Pick the main point; do not list every detail, date or name.
 - Use only facts stated in the passages; do not merge unrelated passages or add outside knowledge.
 - Never mention the passages, passage numbers like [2], or phrases such as "according to".
 - Do not say what is missing.

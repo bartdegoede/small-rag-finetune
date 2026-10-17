@@ -11,7 +11,7 @@ TOPICS = ["generics", "async", "walrus", "lifetimes", "modules", "go", "rust", "
 def corpus(root):
     for i, t in enumerate(TOPICS * 3):
         body = f"## Intro\n\nAll about {t} in practice. " * 20
-        write_post(root / "src", f"{t}-{i}", f"About {t}", body)
+        write_post(root / "src", f"{t}-{i}", f"About {t}-{i}", body)
 
 
 def read(path):
@@ -65,3 +65,22 @@ def test_combine_concatenates_and_keeps_meta_aligned(tmp_path):
     ex = read(tmp_path / "ab" / "train.jsonl")
     meta = read(tmp_path / "ab" / "train.meta.jsonl")
     assert [e["x"] for e in ex] == [m["id"] for m in meta]
+
+
+def test_broad_examples_always_include_the_document_unless_removed(tmp_path):
+    corpus(tmp_path / "corpus")
+    run_broad(
+        tmp_path / "corpus",
+        tmp_path / "broad",
+        ["src"],
+        {"train": 6, "valid": 0, "test": 0},
+        client=FakeClient(),
+        model=FakeModel(),
+        poll=0,
+    )
+    ex = read(tmp_path / "broad" / "train.jsonl")
+    meta = read(tmp_path / "broad" / "train.meta.jsonl")
+    for e, m in zip(ex, meta):
+        title = "About " + m["doc"] + "\n"
+        has_doc = title in e["messages"][1]["content"]
+        assert has_doc == (m["kind"] == "broad"), m

@@ -5,9 +5,12 @@ v3 learned specific-fact questions and refused most broad ones on the blog
 ("What has the blog written about hashing and bit arrays?"). Per document,
 Sonnet writes a TOPIC question ("What has the blog written about X?") and a
 GOAL question ("How can I ...?", without naming the tool). The student sees the
-top 4 passages for the question, with no gold chunk forced in: broad questions
-usually retrieve several chunks of the document. For REMOVED_RATE of the
-questions the document is excluded, so refusals stay in the mix. Opus answers
+top 4 passages for the question. If none is from the document, its best
+chunk replaces the 4th at a random position (as in examples.with_gold): in a
+corpus of ~600 documents per source retrieval often misses the document, and
+the pilot's teacher then refused, which would teach "broad questions get a
+refusal". For REMOVED_RATE of the questions the document is excluded, so
+refusals stay in the mix. Opus answers
 with BROAD_GUIDANCE (or refuses); the teacher decides.
 
 Writes <out>/{train,valid,test}.jsonl + .meta.jsonl like generate, so
@@ -28,9 +31,9 @@ from .claude import (
     teacher_params,
 )
 from .corpus import split_of
-from .examples import Example, passage
+from .examples import Example, passage, with_gold
 from .generate import SPLITS, TEACHER, target_problem
-from .index import SourceIndex
+from .index import Hit, SourceIndex
 from .pilot import write_jsonl
 from .prompt import REFUSAL
 
@@ -112,14 +115,23 @@ def run_broad(
     q_res = run_batch(client, q_reqs, out_dir / "batches" / "questions", poll=poll)
 
     examples: list[Example] = []
-    for k, (s, doc, _) in enumerate(picked):
+    for k, (s, doc, ids) in enumerate(picked):
         r = q_res.get(f"b{k:05d}")
         if r is None:
             continue
         for j, q in enumerate(parse_broad(r["text"])):
             removed = rng.random() < REMOVED_RATE
-            hits = indexes[s].top(q, exclude_post=doc if removed else None)
-            found = None if removed else any(h.chunk.post == doc for h in hits)
+            index = indexes[s]
+            if removed:
+                hits, found = index.top(q, exclude_post=doc), None
+            else:
+                hits = index.top(q)
+                found = any(h.chunk.post == doc for h in hits)
+                if not found:
+                    scores = index.scores(q)
+                    best = max(ids, key=lambda i: scores[i])
+                    gold = Hit(best, float(scores[best]), index.chunks[best])
+                    hits, _ = with_gold(hits, gold, rng)
             kind = "broad-removed" if removed else "broad"
             examples.append(
                 Example(
