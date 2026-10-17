@@ -227,3 +227,15 @@ def combine(sources: tuple[Path, ...], out: Path) -> None:
     from .broad import combine as run
 
     click.echo(json.dumps(run(list(sources), out)))
+
+
+@main.command("hf-export")
+@click.argument("out", type=click.Path(path_type=Path))
+@click.option(
+    "--root", type=click.Path(path_type=Path), default=Path("."), show_default=True
+)
+def hf_export(out: Path, root: Path) -> None:
+    """Write the Hugging Face dataset (v3, broad, v1 configs + card) to OUT."""
+    from .publish import export
+
+    click.echo(json.dumps(export(root, out)))
