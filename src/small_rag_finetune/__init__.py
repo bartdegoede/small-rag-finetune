@@ -263,3 +263,64 @@ def eval_prompts(out: Path, corpus: Path, questions: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
     click.echo(f"{len(rows)} prompts -> {out}")
+
+
+@main.command("post-charts")
+@click.argument("out", type=click.Path(path_type=Path))
+@click.option(
+    "--judgements",
+    type=click.Path(exists=True, path_type=Path),
+    default=Path("runs/eval/judgements.jsonl"),
+    show_default=True,
+)
+@click.option(
+    "--v2-log",
+    type=click.Path(exists=True, path_type=Path),
+    default=Path("logs/v2-qwen3-0.6b.log"),
+    show_default=True,
+)
+def post_charts(out: Path, judgements: Path, v2_log: Path) -> None:
+    """The fine-tuning post's charts, from the blog-eval judgements and v2's log."""
+    from collections import Counter
+
+    from .charts import loss_vs_answers_chart, versions_chart
+    from .checkpoints import val_losses
+
+    counts: dict[str, Counter] = {}
+    for line in judgements.read_text().splitlines():
+        j = json.loads(line)
+        neg = j["family"] == "negative"
+        key = "invented" if neg and j["label"] != "faithful" else None
+        if not neg:
+            key = {"faithful": "faithful", "unsupported": "wrong"}.get(j["label"])
+        counts.setdefault(j["arm"], Counter())[key] += 1
+
+    def row(label: str, arm: str, shipped: bool = False) -> dict:
+        c = counts[arm]
+        return {
+            "label": label,
+            "shipped": shipped,
+            **{k: c[k] for k in ("faithful", "wrong", "invented")},
+        }
+
+    rows = [
+        row("Qwen3-0.6B", "genai-base-qwen3-0.6b-rp1"),
+        row("v1: dense answers", "v1-qwen3-0.6b-rp1"),
+        row("v2: without hedges", "v2-qwen3-0.6b-rp1"),
+        row("v3: one short extract", "v3-qwen3-0.6b-rp1", shipped=True),
+        row("v4: v3 + broad questions", "v4-qwen3-0.6b-rp1"),
+    ]
+    epoch = 2240
+    val = {it / epoch: v for it, v in val_losses(v2_log.read_text()).items() if it > 1}
+    faithful = {
+        0.25: counts["v2-qwen3-0.6b-it560-rp1"]["faithful"],
+        0.5: counts["v2-qwen3-0.6b-it1120-rp1"]["faithful"],
+        1.0: counts["v2-qwen3-0.6b-rp1"]["faithful"],
+    }
+    base = counts["genai-base-qwen3-0.6b-rp1"]["faithful"]
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "versions.svg").write_text(versions_chart(rows) + "\n")
+    (out / "loss-vs-answers.svg").write_text(
+        loss_vs_answers_chart(val, faithful, base) + "\n"
+    )
+    click.echo(json.dumps({"rows": rows, "val": val, "faithful": faithful}))
