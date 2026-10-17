@@ -227,3 +227,14 @@ def hf_export(out: Path, root: Path) -> None:
     from .publish import export
 
     click.echo(json.dumps(export(root, out)))
+
+
+@main.command("hf-stage-model")
+@click.argument("fused", type=click.Path(exists=True, path_type=Path))
+@click.argument("onnx", type=click.Path(exists=True, path_type=Path))
+@click.argument("out", type=click.Path(path_type=Path))
+def hf_stage_model(fused: Path, onnx: Path, out: Path) -> None:
+    """Lay out a model repo: FUSED weights + ONNX export + card, in OUT."""
+    from .publish import stage_model
+
+    click.echo("\n".join(stage_model(fused, onnx, out)))
