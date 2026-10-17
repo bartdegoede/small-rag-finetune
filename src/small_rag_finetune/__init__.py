@@ -198,3 +198,32 @@ def dev_judge(answers: Path, prompts: Path, out: Path) -> None:
     rows = [json.loads(x) for x in prompts.read_text().splitlines() if x.strip()]
     summary = run_dev_judge(anthropic.Anthropic(), rows, answers, out)
     click.echo(json.dumps(summary, indent=2))
+
+
+@main.command()
+@click.option("--corpus", type=click.Path(path_type=Path), default=Path("data/corpus"))
+@click.option("--out", type=click.Path(path_type=Path), default=Path("data/v4-broad"))
+@click.option("--seed", default=0, show_default=True)
+@click.option("--sample", type=int, default=None, help="Answer only N random examples.")
+def generate_broad(corpus: Path, out: Path, seed: int, sample: int | None) -> None:
+    """v4's broad questions (topic and goal, per document) via Message Batches."""
+    from .broad import run_broad
+    from .sources import SOURCES
+
+    summary = run_broad(corpus, out, list(SOURCES), seed=seed, sample=sample)
+    click.echo(json.dumps(summary, indent=2))
+
+
+@main.command()
+@click.argument(
+    "sources",
+    nargs=-1,
+    required=True,
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+@click.option("--out", type=click.Path(path_type=Path), required=True)
+def combine(sources: tuple[Path, ...], out: Path) -> None:
+    """Concatenate datasets (e.g. data/v3 data/v4-broad) into one."""
+    from .broad import combine as run
+
+    click.echo(json.dumps(run(list(sources), out)))

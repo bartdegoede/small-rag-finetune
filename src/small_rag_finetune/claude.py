@@ -63,6 +63,66 @@ How to answer:
 - If the passages answer only part of the question, answer that part and stop; do not say what is missing.
 - If the passages do not answer the question at all, reply with exactly: The blog does not seem to cover this."""
 
+# v4: broad questions about a whole document. The blog eval asks "What has the
+# blog written about X?" and goal questions ("How can I make an audio version of
+# a blog post?"); v1-v3 only had specific facts from one chunk, and v3 refused
+# most broad questions.
+BROAD_PROMPT = """You are writing questions for a site-search assistant that answers from retrieved passages.
+
+<title>{title}</title>
+<sections>
+{headings}
+</sections>
+<opening>
+{opening}
+</opening>
+
+Write 2 broad questions a reader might type into the search box of the site this document is on, that this document as a whole answers.
+- TOPIC: a question about what the site has written on the document's subject, e.g. "What has the blog written about X?" or "What does the blog say about X?". Name the subject in a reader's words.
+- GOAL: a "How can I ..." or "How do I ..." question describing the reader's problem in plain words, without naming the project, tool, PEP or RFC that solves it.
+- Under 16 words each.
+
+Reply with exactly these two lines and nothing else:
+TOPIC: ...
+GOAL: ..."""
+
+BROAD_GUIDANCE = """
+
+How to answer:
+- The question is broad. Say in one or two short sentences what the passages cover on it, reusing their wording: for "what has the blog written about X", name what the posts explain; for "how can I ...", give the approach the passages describe.
+- Use only facts stated in the passages; do not merge unrelated passages or add outside knowledge.
+- Never mention the passages, passage numbers like [2], or phrases such as "according to".
+- Do not say what is missing.
+- If none of the passages is about the question's subject, reply with exactly: The blog does not seem to cover this."""
+
+_TOPIC = re.compile(r"^TOPIC:\s*(.+?)\s*$", re.MULTILINE)
+_GOAL = re.compile(r"^GOAL:\s*(.+?)\s*$", re.MULTILINE)
+
+
+def broad_question_params(title: str, headings: list[str], opening: str) -> dict:
+    content = BROAD_PROMPT.format(
+        title=title,
+        headings="\n".join(headings) or "(none)",
+        opening=opening,
+    )
+    return {
+        "model": QUESTION_MODEL,
+        "max_tokens": 2000,
+        "output_config": {"effort": "low"},
+        "messages": [{"role": "user", "content": content}],
+    }
+
+
+def parse_broad(text: str) -> list[str]:
+    """[topic, goal], skipping missing or NONE lines."""
+    out = []
+    for rx in (_TOPIC, _GOAL):
+        m = rx.search(text)
+        if m and m.group(1).upper() != "NONE":
+            out.append(m.group(1))
+    return out
+
+
 _Q = re.compile(r"^Q\d+:\s*(.+?)\s*$", re.MULTILINE)
 _NEAR = re.compile(r"^NEAR:\s*(.+?)\s*$", re.MULTILINE)
 

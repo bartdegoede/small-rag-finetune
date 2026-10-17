@@ -51,9 +51,15 @@ def small_corpus(root: Path) -> None:
 VERDICT = '{"label": "faithful", "unsupported_claims": [], "reason": "ok"}'
 
 
+BROAD = "TOPIC: What has the blog written about go generics?\nGOAL: How do I write generic functions?"
+
+
 def reply_for(params: dict) -> str:
     if "format" in params.get("output_config", {}):
         return VERDICT
+    msgs = params.get("messages") or [{}]
+    if "TOPIC:" in str(msgs[0].get("content", "")):
+        return BROAD
     return FakeClient.ANSWER if "system" in params else FakeClient.QUESTIONS
 
 
@@ -100,6 +106,10 @@ class FakeClient:
         "Q3: NONE\nNEAR: When will rust get generics?"
     )
     ANSWER = "Go generics add type parameters to functions and types."
+    BROAD_QUESTIONS = (
+        "What has the blog written about go generics?",
+        "How do I write generic functions?",
+    )
 
     def __init__(self):
         self.messages = self
