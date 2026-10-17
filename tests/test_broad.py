@@ -81,6 +81,9 @@ def test_broad_examples_always_include_the_document_unless_removed(tmp_path):
     ex = read(tmp_path / "broad" / "train.jsonl")
     meta = read(tmp_path / "broad" / "train.meta.jsonl")
     for e, m in zip(ex, meta):
-        title = "About " + m["doc"] + "\n"
-        has_doc = title in e["messages"][1]["content"]
+        lines = e["messages"][1]["content"].splitlines()
+        titles = {
+            x.split("] ", 1)[1].split(" — ")[0] for x in lines if x.startswith("[")
+        }
+        has_doc = "About " + m["doc"] in titles
         assert has_doc == (m["kind"] == "broad"), m
