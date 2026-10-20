@@ -2,9 +2,9 @@
 
 Fine-tune a small language model to answer a question from retrieved passages in
 at most two sentences, or to say the passages don't cover it. The target is the
-in-browser "ask my blog" page on [bart.degoe.de](https://bart.degoe.de), where
+in-browser "ask my blog" page on [bart.degoe.de/ask](https://bart.degoe.de/ask), where
 the model has to fit a download budget of about 350 MB and run on WebGPU or WASM
-through transformers.js.
+through transformers.js. There's a [post](https://bart.degoe.de/fine-tuning-a-small-language-model-for-rag/) accompanying this repo too.
 
 The repo builds the training data with Claude, trains LoRA adapters with mlx-lm
 on a Mac, picks a checkpoint on judged answers, exports it to the ONNX q4f16
